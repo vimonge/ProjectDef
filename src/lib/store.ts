@@ -98,7 +98,7 @@ export const useStore = create<State>()(
       removeDefect: (defectId) => set((s) => ({ defects: s.defects.filter((d) => d.id !== defectId) })),
     }),
     {
-      name: 'defecting-v1',
+      name: 'projectdef-v1',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({ rooms: s.rooms, defects: s.defects }),
     },

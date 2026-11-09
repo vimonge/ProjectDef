@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Defecting",
-    "slug": "defecting-app",
+    "name": "ProjectDef",
+    "slug": "projectdef",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "defectingapp",
+    "scheme": "projectdef",
     "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "au.com.mongestudio.defecting"
+      "package": "au.com.mongestudio.projectdef"
     },
     "web": {
       "output": "single",
@@ -37,8 +37,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow Defecting to use the microphone to record defects by voice.",
-          "speechRecognitionPermission": "Allow Defecting to turn your voice into defect notes."
+          "microphonePermission": "Allow ProjectDef to use the microphone to record defects by voice.",
+          "speechRecognitionPermission": "Allow ProjectDef to turn your voice into defect notes."
         }
       ]
     ],

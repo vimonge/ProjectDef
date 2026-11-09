@@ -1,5 +1,9 @@
-# Defecting
+# ProjectDef
 
+
+ProjectDef is a working name. The final app name is still to be decided, so it is
+only set in `app.json` (`name`, `slug`, `scheme`, `android.package`) and can be
+changed there in one place.
 Voice-first defecting app for hotel room inspections. React Native + Expo, Android first.
 
 The idea: walk a room and talk. Each defect you say becomes a draft with the
