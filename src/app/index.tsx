@@ -1,98 +1,194 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useStore, type Room } from '@/lib/store';
+import { C, TOUCH } from '@/lib/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+export default function RoomsScreen() {
+  const insets = useSafeAreaInsets();
+  const rooms = useStore((s) => s.rooms);
+  const defects = useStore((s) => s.defects);
+  const addRoom = useStore((s) => s.addRoom);
+  const removeRoom = useStore((s) => s.removeRoom);
+
+  const [number, setNumber] = useState('');
+  const [type, setType] = useState('');
+
+  const trimmed = number.trim();
+  const duplicate = rooms.some((r) => r.number.toLowerCase() === trimmed.toLowerCase());
+  const canAdd = trimmed.length > 0 && !duplicate;
+
+  const countFor = (roomId: string) => defects.filter((d) => d.roomId === roomId).length;
+
+  const onAdd = () => {
+    if (!canAdd) return;
+    const room = addRoom(trimmed, type);
+    setNumber('');
+    // Room type usually repeats along a corridor, so it is kept for the next room.
+    router.push({ pathname: '/room/[id]', params: { id: room.id } });
+  };
+
+  const confirmRemove = (room: Room) => {
+    const count = countFor(room.id);
+    Alert.alert(
+      `Delete room ${room.number}?`,
+      count > 0 ? `This also deletes its ${count} defect${count === 1 ? '' : 's'}.` : undefined,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => removeRoom(room.id) },
+      ],
     );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+  };
+
+  const sorted = [...rooms].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <Text style={styles.eyebrow}>Voice sweep prototype</Text>
+        <Text style={styles.title}>Rooms</Text>
+      </View>
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+      <View style={styles.addCard}>
+        <View style={styles.addRow}>
+          <View style={styles.fieldNumber}>
+            <Text style={styles.label}>Room</Text>
+            <TextInput
+              value={number}
+              onChangeText={setNumber}
+              placeholder="1008"
+              placeholderTextColor={C.lineStrong}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              returnKeyType="next"
+              style={styles.input}
+              accessibilityLabel="Room number"
+            />
+          </View>
+          <View style={styles.fieldType}>
+            <Text style={styles.label}>Type (optional)</Text>
+            <TextInput
+              value={type}
+              onChangeText={setType}
+              placeholder="RT1A King"
+              placeholderTextColor={C.lineStrong}
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={onAdd}
+              style={styles.input}
+              accessibilityLabel="Room type"
+            />
+          </View>
+        </View>
+        {duplicate ? <Text style={styles.hint}>Room {trimmed} is already in the list.</Text> : null}
+        <Pressable
+          onPress={onAdd}
+          disabled={!canAdd}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.addButton, !canAdd && styles.disabled, pressed && styles.pressed]}>
+          <Feather name="mic" size={18} color={C.onInk} />
+          <Text style={styles.addButtonText}>Add room and start sweep</Text>
+        </Pressable>
+      </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      <FlatList
+        data={sorted}
+        keyExtractor={(r) => r.id}
+        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            No rooms yet. Add the room you are standing in, then talk through its defects.
+          </Text>
+        }
+        renderItem={({ item }) => {
+          const count = countFor(item.id);
+          return (
+            <Pressable
+              onPress={() => router.push({ pathname: '/room/[id]', params: { id: item.id } })}
+              onLongPress={() => confirmRemove(item)}
+              accessibilityRole="button"
+              accessibilityHint="Opens the room. Long press to delete."
+              style={({ pressed }) => [styles.room, pressed && styles.pressed]}>
+              <Text style={styles.roomNumber}>{item.number}</Text>
+              {item.type ? (
+                <View style={styles.typeChip}>
+                  <Text style={styles.typeChipText}>{item.type}</Text>
+                </View>
+              ) : null}
+              <Text style={styles.roomCount}>
+                {count} defect{count === 1 ? '' : 's'}
+              </Text>
+              <Feather name="chevron-right" size={20} color={C.muted} />
+            </Pressable>
+          );
+        }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  screen: { flex: 1, backgroundColor: C.ground },
+  header: { backgroundColor: C.ink, paddingHorizontal: 20, paddingBottom: 18 },
+  eyebrow: { color: C.onInkMuted, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase' },
+  title: { color: C.onInk, fontSize: 30, fontWeight: '700', marginTop: 2 },
+
+  addCard: {
+    margin: 16,
+    marginBottom: 8,
+    padding: 16,
+    gap: 12,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.line,
+  },
+  addRow: { flexDirection: 'row', gap: 12 },
+  fieldNumber: { flex: 2, gap: 6 },
+  fieldType: { flex: 3, gap: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: C.muted },
+  input: {
+    height: TOUCH,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.lineStrong,
+    paddingHorizontal: 12,
+    fontSize: 18,
+    color: C.ink,
+    backgroundColor: C.card,
+  },
+  hint: { fontSize: 13, color: C.warnText },
+  addButton: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: C.accent,
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: 8,
   },
-  title: {
-    textAlign: 'center',
+  addButtonText: { color: C.onInk, fontSize: 16, fontWeight: '600' },
+  disabled: { opacity: 0.45 },
+  pressed: { opacity: 0.8 },
+
+  list: { paddingHorizontal: 16, paddingTop: 8, gap: 8 },
+  empty: { fontSize: 15, lineHeight: 22, color: C.muted, paddingHorizontal: 4, paddingTop: 12 },
+  room: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.line,
   },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  roomNumber: { fontSize: 20, fontWeight: '700', color: C.ink },
+  typeChip: { backgroundColor: C.chip, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  typeChipText: { fontSize: 12, fontWeight: '600', color: C.ink },
+  roomCount: { marginLeft: 'auto', fontSize: 14, color: C.muted },
 });

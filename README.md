@@ -1,56 +1,73 @@
-# Welcome to your Expo app 👋
+# Defecting
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Voice-first defecting app for hotel room inspections. React Native + Expo, Android first.
 
-## Get started
+The idea: walk a room and talk. Each defect you say becomes a draft with the
+issue, where it is, the zone and the trade already filled in, and a title in
+the format builders ask for: `1008 - Paint marks - behind entry door`.
 
-1. Install dependencies
+## What works today (step 1: voice sweep)
+
+- Add a room (number and optional room type).
+- Start a sweep and talk through the room. Pause between defects or say "next".
+- Drafts build live. Tap one to fix the issue, location, zone or trade, or delete it.
+- Type a defect instead of saying it (same parsing).
+- Share a room's list as text (handy for pasting titles into Procore for now).
+- Everything is saved on the phone. No account, no server.
+
+Not built yet: photos and markup, floor plans and pins, reports, tradie close-out.
+
+## Put it on your Android phone
+
+Voice recognition needs the installed app. It does not work in Expo Go.
+
+1. Create a free account at expo.dev.
+2. On your computer, in this folder:
 
    ```bash
    npm install
+   npx eas-cli@latest login
+   npx eas-cli@latest build --profile preview --platform android
    ```
 
-2. Start the app
+3. The first run asks to create the project and an Android keystore. Say yes to both.
+4. When the build finishes (roughly 10 to 20 minutes), open the link or QR code on
+   your phone and install the APK.
 
-   ```bash
-   npx expo start
-   ```
+Voice continuous mode needs Android 13 or newer.
 
-In the output, you'll find options to open the app in a
+### Working without signal
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+The room screen shows a "Download" button if the Australian English voice pack
+is not on the phone yet. Download it once on Wi-Fi and recognition then runs on
+the phone with no signal.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Develop
 
 ```bash
-npm run reset-project
+npm install
+npm run web        # quick look in a browser (typing works, voice depends on the browser)
+npm test           # parser unit tests
+npm run typecheck
+npm run lint
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Where things are
 
-### Other setup steps
+| Path | What |
+| --- | --- |
+| `src/lib/library.ts` | Issue names and their spoken variations, trades, zones. Edit this to teach it your wording. |
+| `src/lib/parser.ts` | Turns speech into draft defects. Plain TypeScript, no network. |
+| `src/lib/parser.test.ts` | Examples of what you can say and what comes out. |
+| `src/lib/use-sweep.ts` | Microphone and speech recognition. |
+| `src/lib/store.ts` | Rooms and defects saved on the phone. |
+| `src/app/index.tsx` | Rooms screen. |
+| `src/app/room/[id].tsx` | Voice sweep screen. |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Roadmap
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Voice sweep (this version)
+2. Photo pass and markup: one photo can cover several defects
+3. Floor plans: level PDFs, room outlines, zones per room type, auto-placed pins
+4. Reports: PDF and Excel per room, level or trade
+5. Close-out: tradie links and re-inspection mode
