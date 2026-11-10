@@ -15,10 +15,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DefectEditor } from '@/components/defect-editor';
 import { UNASSIGNED_TRADE } from '@/lib/library';
-import { formatTitle, parseUtterance } from '@/lib/parser';
+import { formatTitle, parseChunks, parseUtterance, splitOnNext } from '@/lib/parser';
 import { useStore, type Defect } from '@/lib/store';
 import { C, TOUCH } from '@/lib/theme';
 import { useSweep } from '@/lib/use-sweep';
+
+/** A pause this long ends the current defect, the same as saying "next". */
+const PAUSE_MS = 5000;
 
 const clock = (seconds: number) =>
   `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -40,14 +43,46 @@ export default function SweepScreen() {
   const [seconds, setSeconds] = useState(0);
   const listRef = useRef<FlatList<Defect>>(null);
 
+  // Words heard for the defect still being described. Speech arrives in pieces
+  // cut at every breath, so pieces are joined here until "next" or a long pause.
+  const pendingRef = useRef('');
+  const lastSpeechAt = useRef(0);
+  const [pending, setPending] = useState('');
+
   const onHeard = useCallback(
     (text: string) => {
-      if (id) addDefects(id, parseUtterance(text));
+      if (!id) return;
+      const { done, rest } = splitOnNext(`${pendingRef.current} ${text}`);
+      addDefects(id, parseChunks(done));
+      pendingRef.current = rest;
+      setPending(rest);
     },
     [addDefects, id],
   );
 
-  const sweep = useSweep(onHeard);
+  /** Turn whatever is pending into a draft: called on a long pause and when the mic closes. */
+  const finishPending = useCallback(() => {
+    if (!id || !pendingRef.current) return;
+    addDefects(id, parseChunks([pendingRef.current]));
+    pendingRef.current = '';
+    setPending('');
+  }, [addDefects, id]);
+
+  const sweep = useSweep({ onHeard, onStopped: finishPending });
+
+  // Any new words restart the pause clock.
+  useEffect(() => {
+    if (sweep.interim || pending) lastSpeechAt.current = Date.now();
+  }, [sweep.interim, pending]);
+
+  useEffect(() => {
+    if (!sweep.listening) return;
+    const timer = setInterval(() => {
+      const quiet = Date.now() - lastSpeechAt.current >= PAUSE_MS;
+      if (quiet && pendingRef.current && !sweep.interim) finishPending();
+    }, 500);
+    return () => clearInterval(timer);
+  }, [sweep.listening, sweep.interim, finishPending]);
 
   // Count up only while the microphone is open.
   useEffect(() => {
@@ -125,11 +160,11 @@ export default function SweepScreen() {
           <Text style={styles.clock}>{clock(seconds)}</Text>
         </View>
         <Text style={styles.interim} numberOfLines={3}>
-          {sweep.interim
-            ? `“${sweep.interim}…”`
+          {pending || sweep.interim
+            ? `“${[pending, sweep.interim].filter(Boolean).join(' ')}…”`
             : sweep.listening
-              ? 'Say each defect, then pause or say “next”.'
-              : 'Tap the microphone and talk through the room. Example: “paint marks behind entry door, painter”.'}
+              ? 'Describe one defect. Say “next” or pause 5 seconds to finish it.'
+              : 'Tap the microphone and talk through the room. Example: “paint marks behind entry door, painter, next”.'}
         </Text>
         {sweep.error ? <Text style={styles.error}>{sweep.error}</Text> : null}
         {!sweep.available ? (
@@ -169,7 +204,7 @@ export default function SweepScreen() {
             onPress={() => setEditing(item)}
             accessibilityRole="button"
             accessibilityHint="Opens the draft to edit or delete it"
-            style={({ pressed }) => [styles.draft, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.draft, item.review && styles.draftReview, pressed && styles.pressed]}>
             <View style={styles.seq}>
               <Text style={styles.seqText}>{item.seq}</Text>
             </View>
@@ -181,6 +216,7 @@ export default function SweepScreen() {
               <Text style={styles.draftMeta}>
                 {item.zone} · {item.trade}
               </Text>
+              {item.review ? <Text style={styles.draftReviewText}>Wording not recognised. Tap to check.</Text> : null}
             </View>
             <Feather name="edit-2" size={16} color={C.muted} />
           </Pressable>
@@ -332,6 +368,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
   },
+  draftReview: { borderColor: C.warnLine, backgroundColor: C.warnBg },
+  draftReviewText: { fontSize: 13, color: C.warnText },
   seq: { width: 28, height: 28, borderRadius: 8, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' },
   seqText: { color: C.onInk, fontSize: 13, fontWeight: '600' },
   draftText: { flex: 1, gap: 2 },

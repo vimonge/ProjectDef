@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatTitle, parseChunk, parseUtterance, splitUtterance } from './parser';
+import { formatTitle, parseChunk, parseChunks, parseUtterance, splitOnNext, splitUtterance } from './parser';
 
 describe('splitUtterance', () => {
   it('splits on "next" but not "next to"', () => {
@@ -129,5 +129,67 @@ describe('formatTitle', () => {
       '1008 - Paint marks - behind entry door',
     );
     expect(formatTitle('905', 'Paint marks', '')).toBe('905 - Paint marks');
+  });
+});
+
+describe('splitOnNext (voice mode)', () => {
+  it('keeps unfinished words pending until "next"', () => {
+    expect(splitOnNext('marks on the door')).toEqual({ done: [], rest: 'marks on the door' });
+    expect(splitOnNext('marks on the door next')).toEqual({ done: ['marks on the door'], rest: '' });
+    expect(splitOnNext('marks on the door next crack in')).toEqual({
+      done: ['marks on the door'],
+      rest: 'crack in',
+    });
+  });
+
+  it('does not split on the full stops the recogniser adds at each pause', () => {
+    expect(splitOnNext('Kitchen. Bench has a dent.')).toEqual({ done: [], rest: 'kitchen bench has a dent' });
+  });
+
+  it('does not split on "next to"', () => {
+    expect(splitOnNext('mark next to the window next')).toEqual({ done: ['mark next to the window'], rest: '' });
+  });
+
+  it('joins pieces cut at breaths into one defect', () => {
+    // As heard on the first site test: "Kitchen" / "Bench" / "has a dent" arrived separately.
+    let pending = '';
+    const done: string[] = [];
+    for (const piece of ['kitchen', 'bench', 'has a dent', 'next', 'floor', 'is dirty next']) {
+      const r = splitOnNext(`${pending} ${piece}`);
+      done.push(...r.done);
+      pending = r.rest;
+    }
+    expect(done).toEqual(['kitchen bench has a dent', 'floor is dirty']);
+    expect(pending).toBe('');
+    expect(parseChunks(done)).toMatchObject([
+      { issue: 'Dent', detail: 'kitchen bench', zone: 'Kitchen', trade: 'Joiner' },
+      { issue: 'Needs cleaning', detail: 'floor', trade: 'Cleaner' },
+    ]);
+  });
+
+  it('drops filler-only chunks', () => {
+    expect(parseChunks(['um', 'and'])).toEqual([]);
+  });
+});
+
+describe('wording from the first site test', () => {
+  it('understands marks, dirt, excess paint and plasterboard', () => {
+    expect(parseChunk('door has a mark')).toMatchObject({ issue: 'Marks', detail: 'door', trade: 'Painter' });
+    expect(parseChunk('entrance door has marks on the left top corner')).toMatchObject({
+      issue: 'Marks',
+      detail: 'entrance door on the left top corner',
+      zone: 'Entry',
+    });
+    expect(parseChunk('excessive painting on door bottom skirting')).toMatchObject({
+      issue: 'Excess paint',
+      detail: 'door bottom skirting',
+      trade: 'Painter',
+    });
+    expect(parseChunk('crack in the plasterboard on right hand side')).toMatchObject({
+      issue: 'Crack',
+      trade: 'Plasterer',
+    });
+    expect(parseChunk('general is dirt')).toMatchObject({ issue: 'Needs cleaning', trade: 'Cleaner' });
+    expect(parseChunk('skirting front of the laundry has marks').zone).toBe('Laundry');
   });
 });

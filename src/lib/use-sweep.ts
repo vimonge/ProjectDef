@@ -20,6 +20,11 @@ export const SWEEP_LANG = 'en-AU';
 /** Errors that will not fix themselves by trying again. */
 const FATAL = new Set(['not-allowed', 'service-not-allowed', 'language-not-supported', 'audio-capture']);
 
+/** Hiccups Android reports between segments; trying again normally clears them. */
+const TRANSIENT = new Set(['client', 'busy']);
+/** Give up after this many failures in a row with nothing heard in between. */
+const MAX_FAILURES = 4;
+
 const MESSAGES: Record<string, string> = {
   'not-allowed': 'Microphone permission is off. Turn it on in the phone settings for this app.',
   'service-not-allowed': 'Speech recognition is not available on this phone.',
@@ -47,7 +52,14 @@ async function probeOffline(): Promise<OfflineState> {
   }
 }
 
-export function useSweep(onHeard: (text: string) => void) {
+type Handlers = {
+  /** A finished piece of speech. Pieces end at short pauses, so one defect can arrive in several. */
+  onHeard: (text: string) => void;
+  /** The microphone has closed, after the last piece has been delivered. */
+  onStopped: () => void;
+};
+
+export function useSweep({ onHeard, onStopped }: Handlers) {
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -64,10 +76,13 @@ export function useSweep(onHeard: (text: string) => void) {
   /** True from pressing start until pressing stop, even across automatic restarts. */
   const wanted = useRef(false);
   const onDevice = useRef(false);
+  const failures = useRef(0);
   const onHeardRef = useRef(onHeard);
+  const onStoppedRef = useRef(onStopped);
   useEffect(() => {
     onHeardRef.current = onHeard;
-  }, [onHeard]);
+    onStoppedRef.current = onStopped;
+  }, [onHeard, onStopped]);
 
   const checkOffline = useCallback(async () => {
     const state = await probeOffline();
@@ -99,8 +114,7 @@ export function useSweep(onHeard: (text: string) => void) {
       continuous: true,
       maxAlternatives: 1,
       requiresOnDeviceRecognition: onDevice.current,
-      // Punctuation gives the parser sentence breaks; Android only adds it on-device.
-      addsPunctuation: onDevice.current,
+      addsPunctuation: false,
       contextualStrings: HINTS,
     });
   }, []);
@@ -109,6 +123,7 @@ export function useSweep(onHeard: (text: string) => void) {
 
   useSpeechRecognitionEvent('result', (event) => {
     const text = event.results[0]?.transcript ?? '';
+    failures.current = 0;
     if (event.isFinal) {
       setInterim('');
       if (text.trim()) onHeardRef.current(text);
@@ -120,7 +135,11 @@ export function useSweep(onHeard: (text: string) => void) {
   useSpeechRecognitionEvent('error', (event) => {
     // Silence and our own stop are normal; anything else is worth showing.
     if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'speech-timeout') return;
-    if (FATAL.has(event.error)) wanted.current = false;
+    // Android often reports "client" as a session closes after Stop; nothing went wrong.
+    if (!wanted.current && TRANSIENT.has(event.error)) return;
+    failures.current += 1;
+    if (TRANSIENT.has(event.error) && failures.current < MAX_FAILURES) return; // 'end' restarts it
+    if (FATAL.has(event.error) || failures.current >= MAX_FAILURES) wanted.current = false;
     setError(MESSAGES[event.error] ?? `Speech recognition stopped (${event.error}).`);
   });
 
@@ -133,11 +152,13 @@ export function useSweep(onHeard: (text: string) => void) {
       }, 250);
     } else {
       setListening(false);
+      onStoppedRef.current();
     }
   });
 
   const start = useCallback(async () => {
     setError(null);
+    failures.current = 0;
     const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!permission.granted) {
       setError(MESSAGES['not-allowed']);

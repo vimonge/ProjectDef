@@ -33,6 +33,8 @@ export type Defect = {
   /** The words as heard. */
   raw: string;
   status: DefectStatus;
+  /** True when the words matched nothing in the library, so the wording needs a look. */
+  review?: boolean;
   createdAt: number;
 };
 
@@ -85,6 +87,7 @@ export const useStore = create<State>()(
           trade: p.trade,
           raw: p.raw,
           status: 'draft',
+          review: !p.matched,
           createdAt: now,
         }));
         set((s) => ({ defects: [...s.defects, ...added] }));
@@ -92,7 +95,8 @@ export const useStore = create<State>()(
 
       updateDefect: (defectId, edit) =>
         set((s) => ({
-          defects: s.defects.map((d) => (d.id === defectId ? { ...d, ...edit } : d)),
+          // Saving an edit means a person has checked it.
+          defects: s.defects.map((d) => (d.id === defectId ? { ...d, ...edit, review: false } : d)),
         })),
 
       removeDefect: (defectId) => set((s) => ({ defects: s.defects.filter((d) => d.id !== defectId) })),

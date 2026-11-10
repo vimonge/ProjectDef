@@ -13,7 +13,7 @@ the format builders ask for: `1008 - Paint marks - behind entry door`.
 ## What works today (step 1: voice sweep)
 
 - Add a room (number and optional room type).
-- Start a sweep and talk through the room. Pause between defects or say "next".
+- Start a sweep and talk through the room. Say "next" between defects, or pause 5 seconds.
 - Drafts build live. Tap one to fix the issue, location, zone or trade, or delete it.
 - Type a defect instead of saying it (same parsing).
 - Share a room's list as text (handy for pasting titles into Procore for now).

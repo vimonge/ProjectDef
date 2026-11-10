@@ -52,7 +52,31 @@ function normalise(text: string): string {
 const SEPARATOR =
   /(?:[.;]+|\b(?:next (?:one|defect|item)|new defect|another one|and then|and also|also)\b|\bnext\b(?! to\b))/g;
 
-/** One spoken stretch can hold several defects. */
+/** The spoken words that end one defect and start the next. */
+const NEXT = /\b(?:next (?:one|defect|item)|new defect|another one)\b|\bnext\b(?! to\b)/g;
+
+/**
+ * Voice mode: only "next" ends a defect. A short pause does not, because
+ * the recogniser cuts speech into pieces at every breath and its full
+ * stops only mark those cuts.
+ *
+ * Returns the defects that are finished and the words still being said.
+ */
+export function splitOnNext(text: string): { done: string[]; rest: string } {
+  const parts = normalise(text)
+    .replace(/[.;]/g, ' ')
+    .split(NEXT)
+    .map((part) => part.replace(/\s+/g, ' ').trim());
+  const rest = parts.pop() ?? '';
+  return { done: parts.filter((part) => part.length > 0), rest };
+}
+
+/** Parse finished voice chunks, dropping ones that were only filler ("um", "and"). */
+export function parseChunks(chunks: string[]): ParsedDefect[] {
+  return chunks.map(parseChunk).filter((d) => d.issue.length > 0);
+}
+
+/** Typed text: one stretch can hold several defects, split by full stops or "next". */
 export function splitUtterance(text: string): string[] {
   return normalise(text)
     .split(SEPARATOR)
@@ -146,7 +170,12 @@ export function parseChunk(chunk: string): ParsedDefect {
   }
 
   const issueDef = ISSUES.find((i) => i.name === hit.name)!;
-  const detail = tidy(text.replace(phraseRe(hit.phrase), ' '));
+  const detail = tidy(
+    text
+      .replace(phraseRe(hit.phrase), ' ')
+      // "door has a mark" → "door": drop the verb glue left behind.
+      .replace(/\b(?:there is|there's|there are|has|have)(?: an?| some)?\b/g, ' '),
+  );
 
   return {
     issue: issueDef.name,

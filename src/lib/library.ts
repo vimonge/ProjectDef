@@ -27,6 +27,11 @@ export const ISSUES: IssueDef[] = [
     trade: 'Painter',
   },
   {
+    name: 'Excess paint',
+    aliases: ['excessive painting', 'excessive paint', 'excess paint', 'overpainting', 'too much paint', 'paint runs', 'paint run'],
+    trade: 'Painter',
+  },
+  {
     name: 'Paint touch-up',
     aliases: ['paint touch up', 'touch up', 'touch ups', 'patchy paint', 'paint patchy', 'needs paint', 'needs painting', 'paint missing', 'missed paint'],
     trade: 'Painter',
@@ -36,6 +41,7 @@ export const ISSUES: IssueDef[] = [
     aliases: ['scuff marks', 'scuff mark', 'scuffs', 'scuffed', 'scuff'],
     trade: 'Painter',
   },
+  { name: 'Marks', aliases: ['excessive marks', 'marks', 'marked', 'mark'], trade: 'Painter' },
   { name: 'Scratch', aliases: ['scratches', 'scratched', 'scratch'] },
   { name: 'Chip', aliases: ['chipped', 'chips', 'chip'] },
   { name: 'Dent', aliases: ['dented', 'dents', 'dent'] },
@@ -72,7 +78,7 @@ export const ISSUES: IssueDef[] = [
   { name: 'Leak', aliases: ['leaking', 'leaks', 'leak', 'dripping'], trade: 'Plumber' },
   {
     name: 'Needs cleaning',
-    aliases: ['needs cleaning', 'needs a clean', 'needs clean', 'dirty', 'dusty', 'dust', 'stained', 'stains', 'stain', 'glue residue', 'residue', 'sticker left', 'stickers'],
+    aliases: ['needs a general clean', 'need a general clean', 'general cleaning', 'general clean', 'excessive dirt', 'needs cleaning', 'needs a clean', 'needs clean', 'dirty', 'dirt', 'dusty', 'dust', 'stained', 'stains', 'stain', 'glue residue', 'residue', 'sticker left', 'stickers'],
     trade: 'Cleaner',
   },
   { name: 'Damaged', aliases: ['damaged', 'damage', 'broken'] },
@@ -103,7 +109,7 @@ export const ITEM_TRADES: KeywordGroup[] = [
   { name: 'Glazier', keywords: ['mirror', 'glass', 'shower screen', 'window'] },
   {
     name: 'Joiner',
-    keywords: ['door', 'doors', 'wardrobe', 'robe', 'drawer', 'drawers', 'shelf', 'shelves', 'cabinet', 'cupboard', 'joinery', 'bedhead', 'headboard', 'desk', 'bench', 'benchtop', 'handle', 'hinge', 'skirting'],
+    keywords: ['door', 'doors', 'wardrobe', 'robe', 'drawer', 'drawers', 'shelf', 'shelves', 'cabinet', 'cupboard', 'joinery', 'bedhead', 'headboard', 'desk', 'bench', 'benchtop', 'handle', 'hinge', 'skirting', 'skirt'],
   },
   {
     name: 'Electrician',
@@ -114,6 +120,7 @@ export const ITEM_TRADES: KeywordGroup[] = [
     keywords: ['tap', 'taps', 'toilet', 'basin', 'sink', 'shower head', 'showerhead', 'drain', 'mixer', 'cistern'],
   },
   { name: 'Flooring', keywords: ['carpet', 'floorboard', 'floorboards', 'vinyl'] },
+  { name: 'Plasterer', keywords: ['plasterboard', 'plaster', 'gyprock'] },
   { name: 'Painter', keywords: ['wall', 'walls', 'ceiling', 'cornice', 'architrave'] },
 ];
 
@@ -131,6 +138,11 @@ export const ZONES: KeywordGroup[] = [
   { name: 'Bed', keywords: ['bed', 'bedhead', 'headboard', 'bedside', 'bedside table'] },
   { name: 'Window', keywords: ['window', 'windows', 'curtain', 'curtains', 'blind', 'blinds', 'sheer', 'pelmet', 'window sill'] },
   { name: 'Desk', keywords: ['desk', 'chair', 'tv', 'television', 'tv unit'] },
+  {
+    name: 'Kitchen',
+    keywords: ['kitchen', 'kitchenette', 'kitchen bench', 'benchtop', 'cooktop', 'oven', 'rangehood', 'fridge', 'dishwasher', 'splashback'],
+  },
+  { name: 'Laundry', keywords: ['laundry', 'washing machine', 'dryer'] },
 ];
 
 export const DEFAULT_ZONE = 'General';
