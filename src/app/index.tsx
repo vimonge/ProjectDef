@@ -103,6 +103,7 @@ export default function RoomsScreen() {
       <FlatList
         data={sorted}
         keyExtractor={(r) => r.id}
+        style={styles.listFlex}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <Text style={styles.empty}>
@@ -196,7 +197,9 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.8 },
 
-  list: { paddingHorizontal: 16, paddingTop: 8, gap: 8 },
+  // The list takes the space left over, so the status bar stays pinned to the bottom.
+  listFlex: { flex: 1 },
+  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 8 },
   empty: { fontSize: 15, lineHeight: 22, color: C.muted, paddingHorizontal: 4, paddingTop: 12 },
   room: {
     minHeight: 60,
