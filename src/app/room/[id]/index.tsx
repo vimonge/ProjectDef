@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DefectEditor } from '@/components/defect-editor';
 import { UNASSIGNED_TRADE } from '@/lib/library';
 import { formatTitle, parseChunks, parseUtterance, splitOnNext } from '@/lib/parser';
-import { useStore, type Defect } from '@/lib/store';
+import { photosForDefect, useStore, type Defect } from '@/lib/store';
 import { C, TOUCH } from '@/lib/theme';
 import { useSweep } from '@/lib/use-sweep';
 
@@ -32,11 +32,14 @@ export default function SweepScreen() {
 
   const room = useStore((s) => s.rooms.find((r) => r.id === id));
   const allDefects = useStore((s) => s.defects);
+  const photos = useStore((s) => s.photos);
+  const marks = useStore((s) => s.marks);
   const addDefects = useStore((s) => s.addDefects);
   const updateDefect = useStore((s) => s.updateDefect);
   const removeDefect = useStore((s) => s.removeDefect);
 
   const defects = allDefects.filter((d) => d.roomId === id).sort((a, b) => a.seq - b.seq);
+  const withPhoto = defects.filter((d) => photosForDefect(photos, marks, d.id).length > 0).length;
 
   const [editing, setEditing] = useState<Defect | null>(null);
   const [typed, setTyped] = useState('');
@@ -151,6 +154,21 @@ export default function SweepScreen() {
         </Pressable>
       </View>
 
+      <View style={styles.stages}>
+        <View style={[styles.stage, styles.stageOn]}>
+          <Text style={styles.stageOnText}>1 Sweep</Text>
+        </View>
+        <Pressable
+          onPress={() => router.push({ pathname: '/room/[id]/photos', params: { id: room.id } })}
+          disabled={defects.length === 0}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.stage, defects.length === 0 && styles.disabled, pressed && styles.pressed]}>
+          <Text style={styles.stageText}>
+            2 Photos{withPhoto > 0 ? ` · ${withPhoto}/${defects.length}` : ''}
+          </Text>
+        </Pressable>
+      </View>
+
       <View style={styles.listenCard}>
         <View style={styles.listenRow}>
           <View style={[styles.dot, sweep.listening ? styles.dotOn : styles.dotOff]} />
@@ -217,6 +235,11 @@ export default function SweepScreen() {
                 {item.zone} · {item.trade}
               </Text>
               {item.review ? <Text style={styles.draftReviewText}>Wording not recognised. Tap to check.</Text> : null}
+            </View>
+            <View style={styles.draftPhoto}>
+              {photosForDefect(photos, marks, item.id).length > 0 ? (
+                <Feather name="camera" size={16} color="#15803D" accessibilityLabel="Has a photo" />
+              ) : null}
             </View>
             <Feather name="edit-2" size={16} color={C.muted} />
           </Pressable>
@@ -309,6 +332,12 @@ const styles = StyleSheet.create({
   typeChip: { backgroundColor: C.chip, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   typeChipText: { fontSize: 12, fontWeight: '600', color: C.ink },
 
+  stages: { flexDirection: 'row', gap: 8, backgroundColor: C.ink, paddingHorizontal: 16, paddingBottom: 14 },
+  stage: { flex: 1, height: 40, borderRadius: 10, backgroundColor: C.inkRaised, alignItems: 'center', justifyContent: 'center' },
+  stageOn: { backgroundColor: C.chip },
+  stageOnText: { fontSize: 14, fontWeight: '700', color: C.ink },
+  stageText: { fontSize: 14, fontWeight: '600', color: C.onInkMuted },
+
   listenCard: {
     margin: 16,
     marginBottom: 0,
@@ -373,6 +402,7 @@ const styles = StyleSheet.create({
   seq: { width: 28, height: 28, borderRadius: 8, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' },
   seqText: { color: C.onInk, fontSize: 13, fontWeight: '600' },
   draftText: { flex: 1, gap: 2 },
+  draftPhoto: { width: 20, alignItems: 'center' },
   draftTitle: { fontSize: 15, fontWeight: '600', color: C.ink },
   draftMeta: { fontSize: 13, color: C.muted },
 

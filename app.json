@@ -49,6 +49,13 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ProjectDef to take photos of the defects you find.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
           "microphonePermission": "Allow ProjectDef to use the microphone to record defects by voice.",

@@ -19,7 +19,26 @@ the format builders ask for: `1008 - Paint marks - behind entry door`.
 - Share a room's list as text (handy for pasting titles into Procore for now).
 - Everything is saved on the phone. No account, no server.
 
-Not built yet: photos and markup, floor plans and pins, reports, tradie close-out.
+## Step 2: photo pass
+
+From a room, tap **2 Photos**.
+
+- Drafts come up in walking order (entry, bathroom, wardrobe, kitchen, bed,
+  desk, window), not the order you said them.
+- The card at the top says which defect you are shooting. Snap, and markup opens.
+- Drag a circle around the problem. **Undo** removes the last one.
+- One photo can cover several defects: draw another circle and tap it in the
+  list to tie it to a different draft.
+- **Done** moves to the next draft. **Skip photo** moves on without one.
+- The sweep list shows a camera icon against every draft that has a photo, and
+  the Photos tab shows how many are done.
+
+Photos are moved out of the camera's temporary folder into the app's own
+storage, so the phone cannot clear them mid-job. Circles are stored as data
+rather than painted into the image, so they can be changed later and the
+original photo is never damaged.
+
+Not built yet: floor plans and pins, reports, tradie close-out.
 
 ## Put it on your Android phone
 
@@ -89,12 +108,15 @@ npm run lint
 | `src/lib/use-sweep.ts` | Microphone and speech recognition. |
 | `src/lib/store.ts` | Rooms and defects saved on the phone. |
 | `src/app/index.tsx` | Rooms screen. |
-| `src/app/room/[id].tsx` | Voice sweep screen. |
+| `src/app/room/[id]/index.tsx` | Voice sweep screen. |
+| `src/app/room/[id]/photos.tsx` | Photo pass: camera, walking order, progress. |
+| `src/components/markup.tsx` | Circling defects on a photo. |
+| `src/lib/walk.ts` | Walking order and the geometry behind the circles. |
 
 ## Roadmap
 
 1. Voice sweep (this version)
-2. Photo pass and markup: one photo can cover several defects
+2. ~~Photo pass and markup: one photo can cover several defects~~ (done)
 3. Floor plans: level PDFs, room outlines, zones per room type, auto-placed pins
 4. Reports: PDF and Excel per room, level or trade
 5. Close-out: tradie links and re-inspection mode
