@@ -46,6 +46,29 @@ The room screen shows a "Download" button if the Australian English voice pack
 is not on the phone yet. Download it once on Wi-Fi and recognition then runs on
 the phone with no signal.
 
+## Updating the app
+
+Most changes (wording, parsing, screens) go out **over the air**: no reinstall.
+
+```bash
+git pull
+npx eas-cli@latest update --channel preview --message "what changed"
+```
+
+Then open ProjectDef on the phone. It checks on launch and whenever it comes
+back to the front; when the new version has downloaded, the bottom of the Rooms
+screen shows **New version ready · Restart**. Tap it. The line at the bottom of
+the Rooms screen always says which version is running.
+
+A **new build** is only needed when a change adds native code (a new library
+such as the camera). `runtimeVersion` uses the `fingerprint` policy, so those
+updates are simply ignored by older builds rather than crashing them — if an
+update never appears on the phone, that is why.
+
+```bash
+npx eas-cli@latest build --profile preview --platform android
+```
+
 ## Develop
 
 ```bash

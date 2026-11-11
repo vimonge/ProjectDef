@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -6,6 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useStore, type Room } from '@/lib/store';
 import { C, TOUCH } from '@/lib/theme';
+import { useAppUpdate } from '@/lib/use-app-update';
+
+const version = Constants.expoConfig?.version ?? '';
 
 export default function RoomsScreen() {
   const insets = useSafeAreaInsets();
@@ -13,6 +17,8 @@ export default function RoomsScreen() {
   const defects = useStore((s) => s.defects);
   const addRoom = useStore((s) => s.addRoom);
   const removeRoom = useStore((s) => s.removeRoom);
+
+  const update = useAppUpdate();
 
   const [number, setNumber] = useState('');
   const [type, setType] = useState('');
@@ -97,7 +103,7 @@ export default function RoomsScreen() {
       <FlatList
         data={sorted}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={styles.list}
         ListEmptyComponent={
           <Text style={styles.empty}>
             No rooms yet. Add the room you are standing in, then talk through its defects.
@@ -126,6 +132,22 @@ export default function RoomsScreen() {
           );
         }}
       />
+
+      <View style={[styles.statusBar, { paddingBottom: insets.bottom + 10 }]}>
+        {update.ready ? (
+          <Pressable
+            onPress={update.restart}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.restart, pressed && styles.pressed]}>
+            <Feather name="download" size={16} color={C.onInk} />
+            <Text style={styles.restartText}>New version ready · Restart</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.version}>
+            ProjectDef {version} · {update.working ? 'checking for update…' : update.label}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -191,4 +213,17 @@ const styles = StyleSheet.create({
   typeChip: { backgroundColor: C.chip, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   typeChipText: { fontSize: 12, fontWeight: '600', color: C.ink },
   roomCount: { marginLeft: 'auto', fontSize: 14, color: C.muted },
+
+  statusBar: { paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.line },
+  version: { fontSize: 12, color: C.muted, textAlign: 'center' },
+  restart: {
+    height: TOUCH,
+    borderRadius: 12,
+    backgroundColor: C.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  restartText: { color: C.onInk, fontSize: 15, fontWeight: '600' },
 });
